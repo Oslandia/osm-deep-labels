@@ -29,7 +29,7 @@ install_requires = [
 setup(
     name='osm-deep-labels',
     keywords=['OpenStreetMap', 'Overpass API', 'raster'],
-    version=find_version('osm-deep-labels', '__init__.py'),
+    version=find_version('osm_deep_labels', '__init__.py'),
     description='',
     long_description=readme,
     license='MIT',
