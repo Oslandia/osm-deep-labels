@@ -80,6 +80,25 @@ pip setup.py install
 
 And voilà!
 
+## Data pipeline
+
+In this project, we use [Luigi](https://luigi.readthedocs.io/en/stable/), a
+Python package that structurates the code as a reliable data pipeline.
+
+The main steps of the pipeline are as follows:
++ Extract coordinates from raw `tiff` images ;
++ Request Overpass API with corresponding coordinates ;
++ Save resulting OpenStreetMap data in a database with Osm2Pgsql ;
++ Produce rasters from in-base data
+
+During the process, a particular attention must be paid on geographical
+projections. To ensure that produced renderings are reliable, we extract the
+raw SRID from `tiff` images, and use it all along the pipeline in Osm2pgsql
+commands as well as in Mapnik generation. In this last case, we need to convert
+the SRID into a Mapnik-compatible string; then we
+request [spatialreference.org](http://spatialreference.org/) in this purpose
+(many thanks to the creators for this amazingly useful website!).
+
 ## Results
 
 By focusing
@@ -88,11 +107,11 @@ we can visually compare the output of this project with aerial image labelled
 versions.
 
 For instance, one can show an extract of Austin, Texas, where OSM data quality
-seems good:
+seems good (left: aerial image, middle: labelled image, right: current output):
 
 ![austin1](./images/austin1.png)
 
 Another example show on the opposite a case of OSM failure, in Kitsap County,
-Washington:
+Washington (left: aerial image, middle: labelled image, right: current output):
 
 ![kitsap11](./images/kitsap11.png)
