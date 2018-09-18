@@ -33,8 +33,8 @@ The project requires `GDAL`. For ̀Ubuntu` distributions, the following
 operations are needed to install this program:
 
 ```
-sudo apt-get install
-libgdal-dev sudo apt-get install python3-gdal
+sudo apt-get install libgdal-dev
+sudo apt-get install python3-gdal
 ```
 
 The `GDAL` version can be verified by:
@@ -56,10 +56,11 @@ For other OS, please visit the `GDAL` installation documentation.
 Additionnally `Mapnik` is required for rendering purpose. As for `GDAL`, the
 installation process has been tested only with a `Ubuntu` distribution.
 
-First, install `Mapnik` through `apt-get`:
+First, install `Mapnik` through `apt-get` (do not forget to install `boost` as
+well):
 
 ```
-sudo apt-get install libmapnik-dev
+sudo apt-get install libmapnik-dev libboost-python-dev
 ```
 
 Then you can verify the version of the software with the following command:
@@ -75,7 +76,7 @@ clone the corresponding Github repository:
 git clone https://github.com/mapnik/python-mapnik
 cd python-mapnik
 git checkout v3.0.16
-pip setup.py install
+python setup.py install
 ```
 
 And voilà!
