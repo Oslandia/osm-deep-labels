@@ -24,7 +24,7 @@ install_requires = [
     'luigi<=2.7.8',
     'psycopg2<=2.7.5',
     'sh<=1.12.14',
-    'requests<=2.19.1']
+    'requests<=2.21.0']
 
 setup(
     name='osm-deep-labels',
