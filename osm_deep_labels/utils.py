@@ -10,8 +10,8 @@ import mapnik
 from osgeo import gdal, osr
 
 
-def generate_db_string(config_filename):
-    """Build a database connexion string starting from a config file
+def read_config(config_filename):
+    """Parse the database connexion information and store them into a dictionnary
 
     Parameters
     ----------
@@ -20,8 +20,8 @@ def generate_db_string(config_filename):
 
     Returns
     -------
-    str
-        Database connexion string
+    dict
+        Database connexion parameters
     """
     config = ConfigParser()
     if os.path.isfile(config_filename):
@@ -32,14 +32,31 @@ def generate_db_string(config_filename):
             config_filename
         )
         sys.exit(1)
-    user = config.get("database", "user")
-    if config.has_option("database", "password"):
-        user = user + ":" + config.get("bdlhes", "password")
+    if config.has_section("database"):
+        return dict(config["database"])
+    else:
+        return dict()
+
+
+def generate_db_string(conn_dict):
+    """Build a database connexion string starting from a dict that contains
+    connexion parameters
+
+    Parameters
+    ----------
+    conn_dict : dict
+        Path to the database connexion configuration file
+
+    Returns
+    -------
+    str
+        Database connexion string
+    """
+    user = conn_dict["user"]
+    if "password" in conn_dict.keys():
+        user = user + ":" + conn_dict["password"]
     db_string = "postgresql://{}@{}:{}/{}".format(
-        user,
-        config.get("database", "host"),
-        config.get("database", "port"),
-        config.get("database", "dbname")
+        user, conn_dict["host"], conn_dict["port"], conn_dict["dbname"]
         )
     return db_string
 
@@ -192,8 +209,10 @@ def RGBToHTMLColor(rgb_tuple):
     return '#%02x%02x%02x' % tuple(rgb_tuple)
 
 
-def generate_raster(filename, img_size, coordinates,
-                    background_color, building_color):
+def generate_raster(
+        filename, img_size, coordinates, background_color, building_color,
+        config_filename
+):
     """Generate a raster through requesting a PostGIS database with Mapnik
 
     Parameters
@@ -209,6 +228,8 @@ def generate_raster(filename, img_size, coordinates,
         Color of background pixels in [R,G,B]-format
     building_color : list of 3 ints
         Color of building pixels in [R,G,B]-format
+    config_filename : str
+        Path to the database connexion configuration file
 
     """
     mapnik_projection = get_mapnik_projection(coordinates["srid"])
@@ -226,10 +247,17 @@ def generate_raster(filename, img_size, coordinates,
     subquery = ("(SELECT way "
                 "FROM {place}_polygon WHERE building='yes') AS building"
                 "").format(place=place_name)
-    postgis_params = {'host': "localhost", 'port': "5432", 'user': "rdelhome",
-                      'dbname': "osm", 'table': subquery,
-                      'geometry_field': "way", 'srid': coordinates["srid"],
-                      'extent_from_subquery': True}
+    conn_dict = read_config(config_filename)
+    postgis_params = {
+        'host': conn_dict["host"],
+        'port': conn_dict["port"],
+        'user': conn_dict["user"],
+        'dbname': conn_dict["dbname"],
+        'table': subquery,
+        'geometry_field': "way",
+        'srid': coordinates["srid"],
+        'extent_from_subquery': True
+    }
     ds = mapnik.PostGIS(**postgis_params)
 
     layer = mapnik.Layer('buildings')

@@ -26,7 +26,8 @@ class CreateDatabase(luigi.Task):
         return luigi.LocalTarget(self.output_file)
 
     def run(self):
-        db_string = utils.generate_db_string(self.config_filename)
+        conn_dict = utils.read_config(self.config_filename)
+        db_string = utils.generate_db_string(conn_dict)
         db_name = db_string.split("/")[-1]
 
         db_conn = psycopg2.connect(db_string.replace(db_name, "postgres"))
@@ -165,18 +166,21 @@ class StoreOSMBuildingsToDatabase(luigi.Task):
         return luigi.LocalTarget(output_filename)
 
     def run(self):
+        conn_dict = utils.read_config(self.config_filename)
         with self.input()["coordinates"].open('r') as fobj:
             coordinates = json.load(fobj)
         print(coordinates)
         safe_filename = utils.filename_sanity_check(self.filename)
-        osm2pgsql_args = ['-H', "localhost",
-                          '-P', "5432",
-                          '-d', "osm",
-                          '-U', "rdelhome",
-                          '-l',
-                          '-E', coordinates["srid"],
-                          '-p', safe_filename,
-                          self.input()["buildings"].path]
+        osm2pgsql_args = [
+            '-H', conn_dict["host"],
+            '-P', conn_dict["port"],
+            '-d', conn_dict["dbname"],
+            '-U', conn_dict["user"],
+            '-l',
+            '-E', coordinates["srid"],
+            '-p', safe_filename,
+            self.input()["buildings"].path
+        ]
         with self.output().open("w") as fobj:
             sh.osm2pgsql(osm2pgsql_args)
             fobj.write(("osm2pgsql used file {} to insert OSM data"
@@ -213,8 +217,10 @@ class GenerateRaster(luigi.Task):
     def run(self):
         with self.input()["coordinates"].open('r') as fobj:
             coordinates = json.load(fobj)
-        utils.generate_raster(self.output().path, self.image_size, coordinates,
-                              self.background_color, self.building_color)
+        utils.generate_raster(
+            self.output().path, self.image_size, coordinates,
+            self.background_color, self.building_color, self.config_filename
+        )
 
 
 class GenerateAllOSMRasters(luigi.Task):
