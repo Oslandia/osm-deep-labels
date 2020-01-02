@@ -13,6 +13,44 @@ from PIL import Image
 from osm_deep_labels import utils
 
 
+class CreateDatabase(luigi.Task):
+    """
+    """
+    config_filename = luigi.Parameter(default="config.ini")
+
+    @property
+    def output_file(self):
+        return "db-creation-status.txt"
+
+    def output(self):
+        return luigi.LocalTarget(self.output_file)
+
+    def run(self):
+        db_string = utils.generate_db_string(self.config_filename)
+        db_name = db_string.split("/")[-1]
+
+        db_conn = psycopg2.connect(db_string.replace(db_name, "postgres"))
+        db_conn.autocommit = True
+        db_cursor = db_conn.cursor()
+        db_cursor.execute(
+            "DROP DATABASE IF EXISTS {dbname};".format(dbname=db_name)
+        )
+        db_cursor.execute(
+            "CREATE DATABASE {dbname};".format(dbname=db_name)
+        )
+        db_conn.close()
+
+        print(db_string)
+        ext_conn = psycopg2.connect(db_string)
+        ext_cursor = ext_conn.cursor()
+        ext_cursor.execute("CREATE EXTENSION postgis;")
+        ext_conn.commit()
+        ext_conn.close()
+
+        with open(self.output_file, "w") as fobj:
+            fobj.write("OK\n")
+
+
 class GetCoordinates(luigi.Task):
     """
     """
@@ -107,13 +145,16 @@ class GenerateAllOSMBuildings(luigi.Task):
 class StoreOSMBuildingsToDatabase(luigi.Task):
     """
     """
+    config_filename = luigi.Parameter(default="config.ini")
     datapath = luigi.Parameter(default="./data/aerial/input/training/images")
     filename = luigi.Parameter()
 
     def requires(self):
-        return {"coordinates": GetCoordinates(self.datapath, self.filename),
-                "buildings": GetOSMBuildings(self.datapath, self.filename,
-                                             "xml")}
+        return {
+            "database": CreateDatabase(self.config_filename),
+            "coordinates": GetCoordinates(self.datapath, self.filename),
+            "buildings": GetOSMBuildings(self.datapath, self.filename, "xml")
+        }
 
     def output(self):
         path_items = self.datapath.split("/")[:-1]
@@ -131,7 +172,7 @@ class StoreOSMBuildingsToDatabase(luigi.Task):
         osm2pgsql_args = ['-H', "localhost",
                           '-P', "5432",
                           '-d', "osm",
-                          '-U', "rde",
+                          '-U', "rdelhome",
                           '-l',
                           '-E', coordinates["srid"],
                           '-p', safe_filename,
@@ -146,6 +187,7 @@ class StoreOSMBuildingsToDatabase(luigi.Task):
 class GenerateRaster(luigi.Task):
     """
     """
+    config_filename = luigi.Parameter("config.ini")
     datapath = luigi.Parameter(default="./data/aerial/input/training/images")
     filename = luigi.Parameter()
     building_color = luigi.ListParameter(default=[255, 255, 255])
@@ -153,9 +195,12 @@ class GenerateRaster(luigi.Task):
     image_size = luigi.IntParameter(default=5000)
 
     def requires(self):
-        return {"coordinates": GetCoordinates(self.datapath, self.filename),
-                "buildings": StoreOSMBuildingsToDatabase(self.datapath,
-                                                         self.filename)}
+        return {
+            "coordinates": GetCoordinates(self.datapath, self.filename),
+            "buildings": StoreOSMBuildingsToDatabase(
+                self.config_filename, self.datapath, self.filename
+            )
+        }
 
     def output(self):
         path_items = self.datapath.split("/")[:-1]

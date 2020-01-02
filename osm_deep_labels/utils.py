@@ -1,10 +1,47 @@
 """Utility fonctions for osm-deep-labels
 """
 
-import mapnik
-from osgeo import gdal, osr
+from configparser import ConfigParser
 import os
 import requests
+import sys
+
+import mapnik
+from osgeo import gdal, osr
+
+
+def generate_db_string(config_filename):
+    """Build a database connexion string starting from a config file
+
+    Parameters
+    ----------
+    config_filename : str
+        Path to the database connexion configuration file
+
+    Returns
+    -------
+    str
+        Database connexion string
+    """
+    config = ConfigParser()
+    if os.path.isfile(config_filename):
+        config.read(config_filename)
+    else:
+        logger.error(
+            "The specified configuration file does not exist ().",
+            config_filename
+        )
+        sys.exit(1)
+    user = config.get("database", "user")
+    if config.has_option("database", "password"):
+        user = user + ":" + config.get("bdlhes", "password")
+    db_string = "postgresql://{}@{}:{}/{}".format(
+        user,
+        config.get("database", "host"),
+        config.get("database", "port"),
+        config.get("database", "dbname")
+        )
+    return db_string
 
 
 def get_image_coordinates(filename):
@@ -189,7 +226,7 @@ def generate_raster(filename, img_size, coordinates,
     subquery = ("(SELECT way "
                 "FROM {place}_polygon WHERE building='yes') AS building"
                 "").format(place=place_name)
-    postgis_params = {'host': "localhost", 'port': "5432", 'user': "rde",
+    postgis_params = {'host': "localhost", 'port': "5432", 'user': "rdelhome",
                       'dbname': "osm", 'table': subquery,
                       'geometry_field': "way", 'srid': coordinates["srid"],
                       'extent_from_subquery': True}
