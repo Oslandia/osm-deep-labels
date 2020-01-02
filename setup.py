@@ -20,7 +20,7 @@ with open('README.md', 'rb') as f:
 install_requires = [
     'numpy<=1.14.2',
     'pandas<=0.22.0',
-    'pillow<=5.0.0',
+    'pillow<=6.2.0',
     'luigi<=2.8.2',
     'psycopg2<=2.7.5',
     'sh<=1.12.14',
