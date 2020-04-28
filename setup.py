@@ -18,13 +18,14 @@ with open('README.md', 'rb') as f:
     readme = f.read().decode('utf-8')
 
 install_requires = [
-    'numpy<=1.14.2',
-    'pandas<=0.22.0',
-    'pillow<=6.2.0',
-    'luigi<=2.8.2',
-    'psycopg2<=2.7.5',
-    'sh<=1.12.14',
-    'requests<=2.21.0']
+    "numpy<=1.16.2",
+    "pandas<=0.25.0",
+    "pillow<=7.1.2",
+    "luigi<=2.8.2",
+    "psycopg2<=2.7.5",
+    "sh<=1.12.14",
+    "requests<=2.21.0",
+]
 
 setup(
     name='osm-deep-labels',
